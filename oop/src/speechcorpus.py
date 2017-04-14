@@ -13,6 +13,8 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 
 from utils import *
 
+from sklearn.decomposition import NMF
+
 # Globals
 logging.basicConfig()
 LOG = logging.getLogger("SpeechCorpus")
@@ -151,10 +153,13 @@ class SpeechCorpus(object):
 
         ''' corpus attributes '''
         self.corpus = []
+        self._corpus_vectorizer = None
         self.corpus_tf_vectors = None
         self.corpus_vocab = None
         self.corpus_model = None
         self.corpusW = None
+        self.topics = []
+        self._id2word = {}
 
         ''' create the corpus during initialization '''
         self._create_corpus()
@@ -197,12 +202,11 @@ class SpeechCorpus(object):
             vectorizer (function): name of the vectorizer
 
         """
-        _corpus_vectorizer = vectorizer(tokenizer=tokenize,
-                                        stop_words='english')
-        _processed_sp = [_each_speech.get_unprocessed_content()
-                         for _each_speech in corpus]
-        self.corpus_tf_vectors = _corpus_vectorizer.fit_transform(_processed_sp)
-        self.corpus_vocab = _corpus_vectorizer.get_feature_names()
+        self._corpus_vectorizer = vectorizer(tokenizer=tokenize,
+                                             stop_words='english')
+        _processed_sp = [_each_speech.get_unpunctuated_content() for _each_speech in self.corpus]
+        self.corpus_tf_vectors = self._corpus_vectorizer.fit_transform(_processed_sp)
+        self.corpus_vocab = self._corpus_vectorizer.get_feature_names()
 
     def fit(self, model=NMF):
         """
@@ -213,30 +217,52 @@ class SpeechCorpus(object):
         self.corpus_model = model(n_components=self._n_corpus_topics,
                                   init='random',
                                   random_state=0)
+        '''
+        the ordering of speeches is incorporated into
+        corpus_tf_vectors and corpusW
+
+        this ordering is utilized during generating summaries
+        '''
         self.corpusW = self.corpus_model.fit_transform(self.corpus_tf_vectors)
+        self._generate_corpus_topics()
 
-    def corpus_tf_info(self):
-        print "\nCorpus TF vector info: {}".format(self.corpus_tf_vectors.shape)
-        print "\nCorpusW (doc-to-topics): {}".format(self.corpusW.shape)
 
-    def get_corpus_vocabulary(self):
-        pass
+    def _generate_corpus_topics(self):
+        """
+        Vocabulary ID to word mapping
 
-    def get_speech_to_topic(self):
-        ''' return corpusW '''
-        pass
+        Reads in tf vectors and from the document to vocabulary mapping,
+        extracts topic words for n_corpus_topics
+        """
+        for k in self._corpus_vectorizer.vocabulary_.keys():
+            self._id2word[self._corpus_vectorizer.vocabulary_[k]] = k
 
-    def get_corpus_topics(self):
-        pass
+        for topic_index in xrange(self._n_corpus_topics):
+            topic_importance = dict(zip(self._id2word.values(),
+                                        list(self.corpus_model.components_[topic_index])))
+            sorted_topic_imp = sorted(topic_importance.items(),
+                                      key=operator.itemgetter(1),
+                                      reverse=True)
+            self.topics.append([i[0] for i in sorted_topic_imp])
 
-    def get_top_topics(self):
-        pass
+    def extract_summaries(self, vectorizer=TfidfVectorizer):
+        """
+        Extract summaries from the corpus
+        """
+        sentence_tfidf = vectorizer(tokenizer=tokenize,
+                                    stop_words='english',
+                                    vocabulary=self.corpus_vocab)
 
-    def summaries(self):
-        return _gen_summaries()
+        top_topics_of_corpus = self.get_top_topics()
+        '''
+        (1) iterate over raw speech text and speech_sentences
+        (2) get sentence term-frequency vectors based on the vocabulary of the corpus
+        (3) check the cosine similarity of every sentences' TF vector with that of the top topics for that document
+        '''
+        for _sp in self.corpus:
+            doc_blob = TextBlob(_sp.get_processed_content())
 
-    def _gen_summaries(self):
-        pass
+
 
     def _doc2corpus(self, doc_type):
 
@@ -284,3 +310,35 @@ class SpeechCorpus(object):
                 unidecode.unidecode_expect_nonascii(_article.cleaned_text))
 
         U.close()
+
+    def corpus_tf_info(self):
+        print "\nCorpus TF vector info: {}".format(self.corpus_tf_vectors.shape)
+        print "\nCorpusW (doc-to-topics): {}".format(self.corpusW.shape)
+
+    def get_corpus_vocabulary(self):
+        pass
+
+    def get_speech_to_topic(self):
+        ''' return corpusW '''
+        pass
+
+    def get_corpus_topics(self):
+        pass
+
+    def get_top_topics(self):
+        """
+        Return top topics from the corpus
+        Kwargs:
+            W (np.array): CorpusW decomposed from NMF
+            n_topics (int): number of topic words to return
+        """
+        top_topics = []
+        for row in self.corpusW:
+            top_topics.append(np.argsort(row)[::-1][:self._n_corpus_topics])
+
+        return top_topics
+
+    def summaries(self):
+        return _gen_summaries()
+
+
