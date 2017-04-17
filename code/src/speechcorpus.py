@@ -1,25 +1,36 @@
 ''' Talking Points '''
 
-import re
-import logging
 import os
-
-import Goose
-
+import re
 import string
+import operator
+import pprint
+import logging
+
+import numpy as np
+
+from collections import defaultdict
+
+from textblob import TextBlob
+from goose import Goose
+import unidecode
+
 import hashlib
 
-from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.feature_extraction.text import TfidfVectorizer, CountVectorizer, HashingVectorizer
+from sklearn.decomposition import NMF
+from sklearn.decomposition import LatentDirichletAllocation
+
+from sklearn.metrics.pairwise import cosine_similarity
 
 from utils import *
-
-from sklearn.decomposition import NMF
 
 # Globals
 logging.basicConfig()
 LOG = logging.getLogger("SpeechCorpus")
 LOG.setLevel(logging.INFO)
 
+pp = pprint.PrettyPrinter(indent=4)
 
 class Speech(object):
 
@@ -45,12 +56,22 @@ class Speech(object):
         self.processed_txt = self._process_content()
 
         ''' raw sentences of the speech '''
-        self.raw_sentences = self._extract_sentences()
+        self.raw_sentences = self._extract_raw_sentences()
 
         ''' topic attributes '''
         self.topics = []
         self.topic_words = {}
-        self.summary_sentences = []
+
+        ''' sentence similarity metric with topics '''
+        self.sentence_similarity = {}
+
+        '''
+        (1) sentence ranking based on similarity, in descending order
+        (2) lower indices correspond to index of most-important sentences
+            and vice-versa
+        (3) use these rankings used to extract most/least important sentences
+        '''
+        self.sentence_ranking = []
 
     def __repr__(self):
         """
@@ -127,16 +148,6 @@ class Speech(object):
 
         return self.topics
 
-    def get_summary_sentences(self):
-        """
-        Returns:
-            (list) The list of all summary sentences of the speech
-            extracted from the topic assigned to the speech by the corpus
-
-        """
-
-        return self.summary_sentences
-
     def _process_content(self):
         """
         Returns:
@@ -147,14 +158,14 @@ class Speech(object):
 
         """
 
-        re.sub("[\W\d]", " ", self.content.lower().strip())
-        lowers = self.content.replace('\n', ' ').replace('\r', ' ')
+        re.sub("[\W\d]", " ", self.raw_content.lower().strip())
+        lowers = self.raw_content.replace('\n', ' ').replace('\r', ' ')
 
         while "  " in lowers:
             lowers = lowers.replace('  ', ' ')
         return lowers
 
-    def _extract_sentences(self):
+    def _extract_raw_sentences(self):
         """
         Returns:
             (list): The list of all strings corresponding to sentences
@@ -165,6 +176,25 @@ class Speech(object):
         doc_blob = TextBlob(self.processed_txt)
         return doc_blob.sentences
 
+    def get_summary(self, n_summary_sentences=5, most_important=True):
+        """
+        Returns:
+            (list) The list of summary sentences of the speech
+            extracted from the sentence ranking extracted from
+
+        """
+
+        indices = []
+        summ_sentences = []
+        if not most_important:
+            ''' get the least-important sentences in reverse! '''
+            indices = [i for i in self.sentence_ranking[-n_summary_sentences::][::-1]]
+            summ_sentences = [self.raw_sentences[i] for i in indices]
+        else:
+            indices = [i for i in self.sentence_ranking[:n_summary_sentences]]
+            summ_sentences = [self.raw_sentences[i] for i in indices]
+
+        return dict(zip(indices, summ_sentences))
 
 class SpeechCorpus(object):
 
@@ -175,8 +205,7 @@ class SpeechCorpus(object):
                  txt_path=None,
                  url_path=None,
                  n_corpus_topics=10,
-                 n_doc_topics=1,
-                 n_summary_sentences=5):
+                 n_doc_topics=1):
 
         self.html_path = html_path
         self.txt_path = txt_path
@@ -184,7 +213,6 @@ class SpeechCorpus(object):
 
         self._n_corpus_topics = n_corpus_topics
         self._n_doc_topics = n_doc_topics
-        self._n_summary_sentences = n_summary_sentences
 
         ''' speech article related attributes '''
         self.titles = []
@@ -205,12 +233,21 @@ class SpeechCorpus(object):
         ''' create the corpus during initialization '''
         self._create_corpus()
 
+    def __repr__(self):
+        """
+        Returns:
+            (None) Prints the collection of speeches contained in the corpus
+
+        """
+        corpus_repr = '\n'.join(str(i) for i in self.corpus)
+        return '{}'.format(corpus_repr)
+
     def _create_corpus(self):
         """
         Create speech corpus from inputs
         """
 
-        if all([self.html_path, self.txt_path, self.url_path]) is False:
+        if any([self.html_path, self.txt_path, self.url_path]) is False:
             raise NotImplementedError
 
         if self.html_path is not None:
@@ -294,7 +331,7 @@ class SpeechCorpus(object):
                                       reverse=True)
             self.topics.append([i[0] for i in sorted_topic_imp])
 
-    def generate_summaries(self, vectorizer=TfidfVectorizer):
+    def _extract_summaries(self, vectorizer=TfidfVectorizer):
         """
         Returns:
             (None)
@@ -338,28 +375,14 @@ class SpeechCorpus(object):
                 pp.pprint('')
 
                 topic_vector = self.corpus_model.components_[_topic_index]
-                sentence_similarity = {}
                 for s_index, s_tf in enumerate(speech_tfs):
-                    """
-                    calculating the cosine simiarlity
-                    """
-                    sentence_similarity[s_index] = cosine_similarity(s_tf, topic_vector.reshape((1, -1)))[0][0]
+                    ''' calculating the cosine simiarlity '''
+                    _sp.sentence_similarity[s_index] = cosine_similarity(s_tf, topic_vector.reshape((1, -1)))[0][0]
 
-                """
-                sort the sentence similarity and pull the indices of top sentences
-                """
-                most_representative_sentences = [i[0] for i in sorted(sentence_similarity.items(), key=operator.itemgetter(1), reverse=True)[:self._n_summary_sentences]]
-                least_representative_sentences = [i[0] for i in sorted(sentence_similarity.items(), key=operator.itemgetter(1), reverse=False)[:self._n_summary_sentences]]
-
-                pp.pprint('Most Important Sentences...')
-                for i in most_representative_sentences:
-                    pp.pprint(str(_sp.raw_sentences[i]))
-
-                pp.pprint('')
-                pp.pprint('Least Important Sentences...')
-                for i in least_representative_sentences:
-                    pp.pprint(str(_sp.raw_sentences[i]))
-
+                ''' sort sentence similarity and rank them in descending order '''
+                _sp.sentence_ranking = [i[0] for i in sorted(_sp.sentence_similarity.items(),
+                                                             key=operator.itemgetter(1),
+                                                             reverse=True)]
 
     def _doc2corpus(self, doc_type):
 
@@ -393,7 +416,7 @@ class SpeechCorpus(object):
         U = open(self.url_path)
         _urls = [url.strip() for url in U.readlines()]
         for _each_url in _urls:
-            _article = grab_link(_url)
+            _article = grab_link(_each_url)
             if not (_article and _article.cleaned_text and _article.title):
                 continue
 
@@ -403,8 +426,8 @@ class SpeechCorpus(object):
         U.close()
 
     def corpus_tf_info(self):
-        print "\nCorpus TF vector info: {}".format(self.corpus_tf_vectors.shape)
-        print "\nCorpusW (doc-to-topics): {}".format(self.corpusW.shape)
+        pp.pprint("\nCorpus TF vector info: {}".format(self.corpus_tf_vec.shape))
+        pp.pprint("\nCorpusW (doc-to-topics): {}".format(self.corpusW.shape))
 
     def get_corpus_vocabulary(self):
         """
@@ -455,5 +478,4 @@ class SpeechCorpus(object):
             top_topics.append(np.argsort(row)[::-1][:self._n_doc_topics])
 
         return top_topics
-
 
