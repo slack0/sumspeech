@@ -42,7 +42,11 @@ class Speech(object):
         with punctuation for sentence extraction '''
         self.processed_txt = self._process_content()
 
-        self.topics = []
+        ''' speech sentences '''
+        self.raw_sentences = self._extract_sentences()
+
+        self.topics_of_speech = []
+        self.topic_words = {}
         self.summary_sentences = []
 
     def __repr__(self):
@@ -96,6 +100,23 @@ class Speech(object):
 
         return self.processed_txt.translate(None, string.punctuation)
 
+    def get_raw_sentences(self, n_sentences=5):
+        """
+        Returns:
+            (list) The list of first n_sentences from the raw text of
+            the speech
+
+            if n_sentences is None, then return the first five sentences
+        """
+        return self.raw_sentences[:n_sentences]
+
+    def get_assigned_topics(self):
+        return self.topics
+
+    def get_summary_sentences(self, n_sentences=None):
+        ''' return the top n_sentences from rawtxt '''
+        return self.summary_sentences
+
     def _process_content(self):
         """
         Returns:
@@ -112,22 +133,14 @@ class Speech(object):
             lowers = lowers.replace('  ', ' ')
         return lowers
 
-    def get_raw_sentences(self, n_sentences=None):
+    def _extract_sentences(self):
         """
         Returns:
-            (list) The list of first n_sentences from the raw text of
-            the speech
+            array of strings corresponding to sentences of the speech
 
-            if n_sentences is None, then return the first five sentences
         """
-        raise NotImplementedError
-
-    def get_assigned_topics(self):
-        return self.topics
-
-    def get_summary_sentences(self, n_sentences=None):
-        ''' return the top n_sentences from rawtxt '''
-        raise NotImplementedError
+        doc_blob = TextBlob(self.processed_txt)
+        return doc_blob.sentences
 
 
 class SpeechCorpus(object):
@@ -160,6 +173,8 @@ class SpeechCorpus(object):
         self.corpusW = None
         self.topics = []
         self._id2word = {}
+
+        self.top_topics_of_corpus = []
 
         ''' create the corpus during initialization '''
         self._create_corpus()
@@ -202,8 +217,7 @@ class SpeechCorpus(object):
             vectorizer (function): name of the vectorizer
 
         """
-        self._corpus_vectorizer = vectorizer(tokenizer=tokenize,
-                                             stop_words='english')
+        self._corpus_vectorizer = vectorizer(tokenizer=tokenize, stop_words='english')
         _processed_sp = [_each_speech.get_unpunctuated_content() for _each_speech in self.corpus]
         self.corpus_tf_vectors = self._corpus_vectorizer.fit_transform(_processed_sp)
         self.corpus_vocab = self._corpus_vectorizer.get_feature_names()
@@ -253,15 +267,52 @@ class SpeechCorpus(object):
                                     stop_words='english',
                                     vocabulary=self.corpus_vocab)
 
-        top_topics_of_corpus = self.get_top_topics()
+        self.top_topics_of_corpus = self.get_top_topics()
         '''
         (1) iterate over raw speech text and speech_sentences
         (2) get sentence term-frequency vectors based on the vocabulary of the corpus
         (3) check the cosine similarity of every sentences' TF vector with that of the top topics for that document
         '''
-        for _sp in self.corpus:
-            doc_blob = TextBlob(_sp.get_processed_content())
+        for _index, _sp in enumerate(self.corpus):
 
+            speech_sentences = defaultdict(int)
+            for _sentence_count, _each_sentence in enumerate(_sp.raw_sentences):
+                speech_sentences[_sentence_count] = str(_each_sentence).translate(None, string.punctuation)
+
+            speech_tfs = sentence_tfidf.fit_transform(speech_sentences.values()).todense()
+
+            '''
+            iterate over each speech's most relevant topics - and get cosine similarity
+            '''
+            _sp.topics_of_speech = self.top_topics_of_corpus[_index]
+
+            for _topic_index in _sp.topics_of_speech:
+                pp.pprint('Top Topic: ' + str(_topic_index))
+                pp.pprint('Top Topic Words: ' + str(self.topics[_topic_index][:10]))
+                pp.pprint('')
+
+                topic_vector = self.corpus_model.components_[_topic_index]
+                sentence_similarity = {}
+                for s_index, s_tf in enumerate(speech_tfs):
+                    '''
+                    calculating the cosine simiarlity
+                    '''
+                    sentence_similarity[s_index] = cosine_similarity(s_tf, topic_vector.reshape((1, -1)))[0][0]
+
+                '''
+                sort the sentence similarity and pull the indices of top sentences 
+                '''
+                most_representative_sentences = [i[0] for i in sorted(sentence_similarity.items(), key=operator.itemgetter(1), reverse=True)[:self._n_summary_sentences]]
+                least_representative_sentences = [i[0] for i in sorted(sentence_similarity.items(), key=operator.itemgetter(1), reverse=False)[:self._n_summary_sentences]]
+
+                pp.pprint('Most Important Sentences...')
+                for i in most_representative_sentences:
+                    pp.pprint(str(_sp.raw_sentences[i]))
+
+                pp.pprint('')
+                pp.print('Least Important Sentences...')
+                for i in least_representative_sentences:
+                    pp.pprint(str(_sp.raw_sentences[i]))
 
 
     def _doc2corpus(self, doc_type):
@@ -277,11 +328,8 @@ class SpeechCorpus(object):
                             _article.title):
                         continue
 
-                    self.titles.append(
-                        unidecode.unidecode_expect_nonascii(_article.title))
-                    self.text_content.append(
-                        unidecode.unidecode_expect_nonascii(
-                            _article.cleaned_text))
+                    self.titles.append(unidecode.unidecode_expect_nonascii(_article.title))
+                    self.text_content.append(unidecode.unidecode_expect_nonascii(_article.cleaned_text))
                     _htmlfile.close()
 
                 if (doc_type is 'txt'):
@@ -291,8 +339,7 @@ class SpeechCorpus(object):
                     explicitly from processed text
                     '''
                     self.titles.append(None)
-                    self.text_content.append(
-                        unidecode.unidecode_expect_nonascii(_fhandle.read()))
+                    self.text_content.append(unidecode.unidecode_expect_nonascii(_fhandle.read()))
                     _fhandle.close()
 
     def _web2corpus(self):
@@ -304,10 +351,8 @@ class SpeechCorpus(object):
             if not (_article and _article.cleaned_text and _article.title):
                 continue
 
-            self.titles.append(
-                unidecode.unidecode_expect_nonascii(_article.title))
-            self.text_content.append(
-                unidecode.unidecode_expect_nonascii(_article.cleaned_text))
+            self.titles.append(unidecode.unidecode_expect_nonascii(_article.title))
+            self.text_content.append(unidecode.unidecode_expect_nonascii(_article.cleaned_text))
 
         U.close()
 
