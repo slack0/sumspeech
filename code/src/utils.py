@@ -4,9 +4,7 @@ from goose import Goose
 
 import operator
 import nltk
-
 import numpy as np
-
 
 def grab_link(in_url):
     """
@@ -92,3 +90,4 @@ def get_top_topics(W, n_topics):
         top_topics.append(np.argsort(row)[::-1][:n_topics])
 
     return top_topics
+

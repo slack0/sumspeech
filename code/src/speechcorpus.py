@@ -23,15 +23,17 @@ LOG.setLevel(logging.INFO)
 
 class Speech(object):
 
-    """Speech Operations for a Corpus"""
+    """ Operations for Speech Text """
 
     def __init__(self, speech_id=None, title=None, content=None):
         """
         Kwargs:
-            speech_id (str):
-            title (str):
-
+            speech_id (str):    unique ID associated with the speech
+            title (str):        title of the speech
+            content (str):      unicode string containing the entire text
+                                of the speech (unprocessed)
         """
+
         self.speech_id = speech_id
         self.title = title
         self.raw_content = content
@@ -42,10 +44,11 @@ class Speech(object):
         with punctuation for sentence extraction '''
         self.processed_txt = self._process_content()
 
-        ''' speech sentences '''
+        ''' raw sentences of the speech '''
         self.raw_sentences = self._extract_sentences()
 
-        self.topics_of_speech = []
+        ''' topic attributes '''
+        self.topics = []
         self.topic_words = {}
         self.summary_sentences = []
 
@@ -53,6 +56,7 @@ class Speech(object):
         """
         Returns:
             (str) The unique speech_id and speech title
+
         """
 
         return '{}: {}'.format(self.speech_id, self.title)
@@ -61,6 +65,7 @@ class Speech(object):
         """
         Returns:
             (str) The unique speech_id
+
         """
 
         return self.speech_id
@@ -69,6 +74,7 @@ class Speech(object):
         """
         Returns:
             (str) The speech title
+
         """
 
         return self.title
@@ -76,8 +82,8 @@ class Speech(object):
     def get_unprocessed_content(self):
         """
         Returns:
-            (str) The unprocessed string of all text gathered from parsing
-            the speech
+            (str) The raw unicode string (all text) parsed from the speech
+
         """
 
         return self.raw_content
@@ -85,8 +91,8 @@ class Speech(object):
     def get_processed_content(self):
         """
         Returns:
-            (str) The cleaned-up string of all text gathered from parsing
-            the speech
+            (str) The cleaned-up string of parsed speech, with punctuation
+
         """
 
         return self.processed_txt
@@ -94,8 +100,9 @@ class Speech(object):
     def get_unpunctuated_content(self):
         """
         Returns:
-            (str) processed text after clean and punctuation removal
-            for vectorization and vocabulary generation
+            (str) The cleaned-up string from processed text after
+            punctuation removal for vectorization and vocabulary generation
+
         """
 
         return self.processed_txt.translate(None, string.punctuation)
@@ -106,26 +113,40 @@ class Speech(object):
             (list) The list of first n_sentences from the raw text of
             the speech
 
-            if n_sentences is None, then return the first five sentences
         """
+
         return self.raw_sentences[:n_sentences]
 
     def get_assigned_topics(self):
+        """
+        Returns:
+            (list) The list of topics assigned to this speech after
+            topic modeling from the corpus
+
+        """
+
         return self.topics
 
-    def get_summary_sentences(self, n_sentences=None):
-        ''' return the top n_sentences from rawtxt '''
+    def get_summary_sentences(self):
+        """
+        Returns:
+            (list) The list of all summary sentences of the speech
+            extracted from the topic assigned to the speech by the corpus
+
+        """
+
         return self.summary_sentences
 
     def _process_content(self):
         """
         Returns:
-            (str) cleaned up string of text from raw content of the speech
+            (str) The cleaned up string of text from raw content of the speech
 
-            performs substitution/lower casing and double space removal
-            for sentence extraction
+            This routine performs substitution/lower casing and
+            double space removal for sentence extraction
 
         """
+
         re.sub("[\W\d]", " ", self.content.lower().strip())
         lowers = self.content.replace('\n', ' ').replace('\r', ' ')
 
@@ -136,14 +157,19 @@ class Speech(object):
     def _extract_sentences(self):
         """
         Returns:
-            array of strings corresponding to sentences of the speech
+            (list): The list of all strings corresponding to sentences
+            of the speech
 
         """
+
         doc_blob = TextBlob(self.processed_txt)
         return doc_blob.sentences
 
 
 class SpeechCorpus(object):
+
+    """ Speech Corpus Generation and Operations """
+
     def __init__(self,
                  html_path=None,
                  txt_path=None,
@@ -167,7 +193,7 @@ class SpeechCorpus(object):
         ''' corpus attributes '''
         self.corpus = []
         self._corpus_vectorizer = None
-        self.corpus_tf_vectors = None
+        self.corpus_tf_vec = None
         self.corpus_vocab = None
         self.corpus_model = None
         self.corpusW = None
@@ -180,6 +206,10 @@ class SpeechCorpus(object):
         self._create_corpus()
 
     def _create_corpus(self):
+        """
+        Create speech corpus from inputs
+        """
+
         if all([self.html_path, self.txt_path, self.url_path]) is False:
             raise NotImplementedError
 
@@ -217,9 +247,11 @@ class SpeechCorpus(object):
             vectorizer (function): name of the vectorizer
 
         """
-        self._corpus_vectorizer = vectorizer(tokenizer=tokenize, stop_words='english')
-        _processed_sp = [_each_speech.get_unpunctuated_content() for _each_speech in self.corpus]
-        self.corpus_tf_vectors = self._corpus_vectorizer.fit_transform(_processed_sp)
+
+        self._corpus_vectorizer = vectorizer(tokenizer=tokenize,
+                                             stop_words='english')
+        _cleaned_sp = [_sp.get_unpunctuated_content() for _sp in self.corpus]
+        self.corpus_tf_vec = self._corpus_vectorizer.fit_transform(_cleaned_sp)
         self.corpus_vocab = self._corpus_vectorizer.get_feature_names()
 
     def fit(self, model=NMF):
@@ -227,19 +259,21 @@ class SpeechCorpus(object):
         Fit a model on vectorized speech corpus
         Kwargs:
             model (function): name of the model to perform decomposition
+
         """
+
         self.corpus_model = model(n_components=self._n_corpus_topics,
                                   init='random',
                                   random_state=0)
+
         '''
         the ordering of speeches is incorporated into
-        corpus_tf_vectors and corpusW
+        corpus_tf_vec and corpusW
 
         this ordering is utilized during generating summaries
         '''
-        self.corpusW = self.corpus_model.fit_transform(self.corpus_tf_vectors)
+        self.corpusW = self.corpus_model.fit_transform(self.corpus_tf_vec)
         self._generate_corpus_topics()
-
 
     def _generate_corpus_topics(self):
         """
@@ -248,6 +282,7 @@ class SpeechCorpus(object):
         Reads in tf vectors and from the document to vocabulary mapping,
         extracts topic words for n_corpus_topics
         """
+
         for k in self._corpus_vectorizer.vocabulary_.keys():
             self._id2word[self._corpus_vectorizer.vocabulary_[k]] = k
 
@@ -259,19 +294,26 @@ class SpeechCorpus(object):
                                       reverse=True)
             self.topics.append([i[0] for i in sorted_topic_imp])
 
-    def extract_summaries(self, vectorizer=TfidfVectorizer):
+    def generate_summaries(self, vectorizer=TfidfVectorizer):
         """
-        Extract summaries from the corpus
+        Returns:
+            (None)
+            Performs summary extraction from the corpus based on decomposition/
+            latent feature extraction from the vectorized corpus
         """
+
         sentence_tfidf = vectorizer(tokenizer=tokenize,
                                     stop_words='english',
                                     vocabulary=self.corpus_vocab)
 
-        self.top_topics_of_corpus = self.get_top_topics()
+        self.top_topics_of_sp = self.get_top_topics()
+
         '''
         (1) iterate over raw speech text and speech_sentences
-        (2) get sentence term-frequency vectors based on the vocabulary of the corpus
-        (3) check the cosine similarity of every sentences' TF vector with that of the top topics for that document
+        (2) get sentence term-frequency vectors based on the
+            vocabulary of the corpus
+        (3) check the cosine similarity of every sentences' TF vector
+            with that of the top topics for that document
         '''
         for _index, _sp in enumerate(self.corpus):
 
@@ -282,11 +324,15 @@ class SpeechCorpus(object):
             speech_tfs = sentence_tfidf.fit_transform(speech_sentences.values()).todense()
 
             '''
-            iterate over each speech's most relevant topics - and get cosine similarity
+            (1) iterate over each speech's most relevant topics
+            (2) get cosine similarity between speech_tfs and topic_vectors
             '''
-            _sp.topics_of_speech = self.top_topics_of_corpus[_index]
 
-            for _topic_index in _sp.topics_of_speech:
+            ''' assign topics to speech; at this point,
+            we should be able to query/retrieve topics from speech objects '''
+            _sp.topics = self.top_topics_of_sp[_index]
+
+            for _topic_index in _sp.topics:
                 pp.pprint('Top Topic: ' + str(_topic_index))
                 pp.pprint('Top Topic Words: ' + str(self.topics[_topic_index][:10]))
                 pp.pprint('')
@@ -294,14 +340,14 @@ class SpeechCorpus(object):
                 topic_vector = self.corpus_model.components_[_topic_index]
                 sentence_similarity = {}
                 for s_index, s_tf in enumerate(speech_tfs):
-                    '''
+                    """
                     calculating the cosine simiarlity
-                    '''
+                    """
                     sentence_similarity[s_index] = cosine_similarity(s_tf, topic_vector.reshape((1, -1)))[0][0]
 
-                '''
-                sort the sentence similarity and pull the indices of top sentences 
-                '''
+                """
+                sort the sentence similarity and pull the indices of top sentences
+                """
                 most_representative_sentences = [i[0] for i in sorted(sentence_similarity.items(), key=operator.itemgetter(1), reverse=True)[:self._n_summary_sentences]]
                 least_representative_sentences = [i[0] for i in sorted(sentence_similarity.items(), key=operator.itemgetter(1), reverse=False)[:self._n_summary_sentences]]
 
@@ -310,7 +356,7 @@ class SpeechCorpus(object):
                     pp.pprint(str(_sp.raw_sentences[i]))
 
                 pp.pprint('')
-                pp.print('Least Important Sentences...')
+                pp.pprint('Least Important Sentences...')
                 for i in least_representative_sentences:
                     pp.pprint(str(_sp.raw_sentences[i]))
 
@@ -335,9 +381,9 @@ class SpeechCorpus(object):
                 if (doc_type is 'txt'):
                     _fhandle = open(_file_path, 'r')
 
-                    ''' currently we do not have a means to extract title
+                    """ currently we do not have a means to extract title
                     explicitly from processed text
-                    '''
+                    """
                     self.titles.append(None)
                     self.text_content.append(unidecode.unidecode_expect_nonascii(_fhandle.read()))
                     _fhandle.close()
@@ -361,14 +407,40 @@ class SpeechCorpus(object):
         print "\nCorpusW (doc-to-topics): {}".format(self.corpusW.shape)
 
     def get_corpus_vocabulary(self):
-        pass
+        """
+        Returns:
+            (list) The words that form the corpus vocabulary
+
+        """
+        return self.corpus_vocab
 
     def get_speech_to_topic(self):
-        ''' return corpusW '''
-        pass
+        """
+        Returns:
+            (np.array) The numpy array from the output of model decomposition
+
+        """
+        return self.corpusW
+
+    def get_id2word(self):
+        """
+        Returns:
+            (dict) The dictionary containing the mapping between topic index
+            and words in the vocabulary
+
+        """
+
+        return self._id2word
 
     def get_corpus_topics(self):
-        pass
+        """
+        Returns:
+            (list) The list of corpus topics.
+            Each topic itself is a list of words that describe the latent topic
+
+        """
+
+        return self.topics
 
     def get_top_topics(self):
         """
@@ -377,13 +449,11 @@ class SpeechCorpus(object):
             W (np.array): CorpusW decomposed from NMF
             n_topics (int): number of topic words to return
         """
+
         top_topics = []
         for row in self.corpusW:
-            top_topics.append(np.argsort(row)[::-1][:self._n_corpus_topics])
+            top_topics.append(np.argsort(row)[::-1][:self._n_doc_topics])
 
         return top_topics
-
-    def summaries(self):
-        return _gen_summaries()
 
 
