@@ -9,7 +9,7 @@ raw_corpus_html = {
         }
 
 raw_corpus_text = {
-        'obama' : '../data/Obama',
+        'obama': '../data/Obama',
         'romney': '../data/Romney',
         'test': '../data/tests/simple'
         }
@@ -29,14 +29,50 @@ __n_speeches_to_print = 5
 __n_sentences_per_speech = 5
 
 
-sc = SpeechCorpus(url_path=curated_urls['test'],
+''' build speech corpus '''
+sc = SpeechCorpus(url_path=curated_urls['obama'],
                   n_corpus_topics=__n_topics_to_extract,
                   n_doc_topics=__n_topics_to_associate_per_speech)
 
-# sc.describe()
+''' verify corpus after creation '''
+print(sc)
 
-# sc.top_topics(topic_count=__n_topics_to_display)
 
-# sc.top_sentences(speech_count=__n_speeches_to_print,
-#                  sentence_count=__n_sentences_per_speech)
+''' vectorize the corpus -
+we can select the type of vectorizer to use with the option 'vectorizer'
 
+A selection of text vectorizers available in sklearn.feature_extraction.text
+
+The default vectorizer is TfidfVectorizer
+'''
+sc.vectorize_corpus()
+
+''' Decompose the document-term matrix into document-topic and
+topic-term matrices with decomposition
+
+Models supported for decomposition are:
+    - sklearn.decomposition.NMF (default)
+    - sklearn.decomposition.LatentDirichletAllocation
+
+'''
+sc.fit(model=NMF, nmf_init='nndsvd')
+
+''' at this point, it is possible to pull different attributes of
+corpus and speeches - and use it debug/evaluate '''
+sc.corpus_tf_info()
+
+''' extract summaries from corpus.
+this generates sentence rankings for every speech
+
+During this step, the vocabulary of entire corpus is used
+to normalize the vocabulary of the speech.
+
+There is an option to explore additional vectorizers when looking
+for similarity to topic vectors.
+
+The default vectorizer is TfidfVectorizer
+'''
+sc.extract_summaries()
+
+
+''' iterate on corpus speeches and print summaries '''

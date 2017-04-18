@@ -17,7 +17,10 @@ import unidecode
 
 import hashlib
 
-from sklearn.feature_extraction.text import TfidfVectorizer, CountVectorizer, HashingVectorizer
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.feature_extraction.text import HashingVectorizer
+
 from sklearn.decomposition import NMF
 from sklearn.decomposition import LatentDirichletAllocation
 
@@ -291,17 +294,26 @@ class SpeechCorpus(object):
         self.corpus_tf_vec = self._corpus_vectorizer.fit_transform(_cleaned_sp)
         self.corpus_vocab = self._corpus_vectorizer.get_feature_names()
 
-    def fit(self, model=NMF):
+    def fit(self, model=NMF, nmf_init='random'):
         """
         Fit a model on vectorized speech corpus
         Kwargs:
             model (function): name of the model to perform decomposition
 
         """
+        if not ((model.__module__ == 'sklearn.decomposition.nmf') or
+                (model.__module__ == 'sklearn.decomposition.online_lda')):
+            raise NotImplementedError
 
-        self.corpus_model = model(n_components=self._n_corpus_topics,
-                                  init='random',
-                                  random_state=0)
+        if model.__module__ == 'sklearn.decomposition.nmf':
+            self.corpus_model = model(n_components=self._n_corpus_topics,
+                                      init=nmf_init,
+                                      random_state=1980)
+
+        if model.__module__ == 'sklearn.decomposition.online_lda':
+            self.corpus_model = model(n_topics=self._n_corpus_topics,
+                                      n_jobs=-1,
+                                      verbose=10)
 
         '''
         the ordering of speeches is incorporated into
@@ -331,7 +343,7 @@ class SpeechCorpus(object):
                                       reverse=True)
             self.topics.append([i[0] for i in sorted_topic_imp])
 
-    def _extract_summaries(self, vectorizer=TfidfVectorizer):
+    def extract_summaries(self, vectorizer=TfidfVectorizer):
         """
         Returns:
             (None)
@@ -370,9 +382,9 @@ class SpeechCorpus(object):
             _sp.topics = self.top_topics_of_sp[_index]
 
             for _topic_index in _sp.topics:
-                pp.pprint('Top Topic: ' + str(_topic_index))
-                pp.pprint('Top Topic Words: ' + str(self.topics[_topic_index][:10]))
-                pp.pprint('')
+                pp.pprint("Top Topic: " + str(_topic_index))
+                pp.pprint("Top Topic Words: "  + str(self.topics[_topic_index][:10]))
+                pp.pprint(" ")
 
                 topic_vector = self.corpus_model.components_[_topic_index]
                 for s_index, s_tf in enumerate(speech_tfs):
@@ -426,8 +438,9 @@ class SpeechCorpus(object):
         U.close()
 
     def corpus_tf_info(self):
-        pp.pprint("\nCorpus TF vector info: {}".format(self.corpus_tf_vec.shape))
-        pp.pprint("\nCorpusW (doc-to-topics): {}".format(self.corpusW.shape))
+        pp.pprint('Corpus TF vector info: {}'.format(self.corpus_tf_vec.shape))
+        pp.pprint('CorpusW (doc-to-topics): {}'.format(self.corpusW.shape))
+        pp.pprint('CorpusH (topics-to-vocab): {}'.format(self.corpus_model.components_.shape))
 
     def get_corpus_vocabulary(self):
         """
