@@ -27,26 +27,25 @@ is still an active area of work, and so is
 [Extractive summarization](https://www.google.com/search?q=extractive+summarization).
 
 State of the art abstractive summarization techniques focus on attention
-mechanisms using RNNs to train sentence generators. Where as extractive
-summarizers focus on word/sentence selection mechanisms using a variety of
-techniques. Extractive summarizers find the most informative sentences in a given article.
-[TextRank](https://web.eecs.umich.edu/~mihalcea/papers/mihalcea.emnlp04.pdf) is
-a well-known technique for extractive summarization.
+mechanisms using RNNs to train sentence generators. Extractive summarizers, on
+the other hand, find the most informative sentences in a given article.
+[TextRank](https://web.eecs.umich.edu/~mihalcea/papers/mihalcea.emnlp04.pdf)
+and [Latent Semantic Analysis](https://en.wikipedia.org/wiki/Latent_semantic_analysis) 
+are a couple of well-known techniques for extractive summarization.
 
-A good implementation of well-known/SoTA techniques for abstractive
-summarization in the tool [sumy](https://github.com/miso-belica/sumy).
+A good implementation of well-known/SoTA techniques for extractive
+summarization are available in the tool [sumy](https://github.com/miso-belica/sumy).
 
 ## Summary Generation from Political Speeches
 
-The primary motivation for this work is to develop insights and build a profile
-of a speaker based on their speech. For a speaker/leader in public domain, who
-is well studied and discussed in the media, it is relatively easy to develop
-insights. But developing insights into someone who is not in the limelight is
-difficult. Speeches, interviews, and conversations in general reveal what
-people believe in and where they stand on issues. Speech patterns such as
-vocabulary usage, sentiments expressed and topics discussed are some of the
-main attributes that pop out directly from speeches. Using these primary
-attributes, we explore summary generation.
+The effectiveness of extractive summary generation depends to a great degree on
+the type of document.  The primary motivation for this work is to develop
+insights and build a profile of a speaker based on their speech. Speeches,
+interviews, and conversations in general reveal what people believe in and
+where they stand on issues. Speech patterns such as vocabulary usage,
+sentiments expressed and topics discussed are some of the main attributes that
+pop out directly from speeches. Using these primary attributes, we explore
+summary generation.
 
 As good as some of the extractive summarizers are, they fall short of capturing
 the context information available in articles or speeches from a speaker. This
@@ -61,7 +60,7 @@ about.
 
 The main intuition here is that the inference about the topic is
 valuable in evaluating which parts of a document or a speech are
-relevant to it.  Using this intuition, this tool provides a summary of
+relevant to it.  With this intuition, this tool provides a summary of
 the most important topics of speeches based on speaking style (word
 usage) of a specific person (i.e., from a speech corpus). Based on topic
 extraction and sentence/document vectorization, the tool extracts most
@@ -118,11 +117,11 @@ a speech. Every topic is associated with a vocabulary vector. The top
 words associated with a topic can again be obtained by sorting the
 topic-vocabulary vector in descending order.
 
-Consider the transcript of a speech given by Obama at the
-113th Convention of the Veterans of Foreign Wars.
-
+Consider the transcript of a speech given by Obama at a veterans convention.
 
 ```
+Speech to the 113th Convention of the Veterans of Foreign Wars
+
 Commander DeNoyer, thank you for your introduction, and your service in
 Vietnam and on behalf of America's veterans. I want to thank your
 executive director, Bob Wallace; your next commander, who I look forward
@@ -161,10 +160,42 @@ http://www.americanrhetoric.com/speeches/barackobama/barackobama113vfw.htm
 ```
 
 The topic clearly is associated with a discussion about wars, veterans
-and their contributions to America. The topic words associated with this
-speech -- that are extracted are:
+and their contributions to America. The top topic associated with this
+speech, as represented by the topic vector/words is:
 
 'iraq', 'veterans', 'war', 'troops', 'military', 'afghanistan', 'security', 'afghan'
+
+
+Using the above topic vector, the following sentences are extracted from the speech.
+
+
+```
+After 10 years of war, and given the progress we've made, I felt it was important that the American people -- and our men and women in uniform -- know our plan to end this war responsibly.
+
+Because we're leading around the world, people have a new attitude toward America.
+
+If the choice is between tax cuts that the wealthiest Americans don't need and funding our troops that they definitely need to keep our country strong, I will stand with our troops every single time.
+
+For the first time ever, we've made military families and veterans a top priority not just at DOD, not just at the VA, but across the government.
+
+You know how this can work better, so let's get it done, together.
+
+Four years ago, I said that I'd do everything I could to help our veterans realize the American Dream, to enlist you in building a stronger America.
+
+So today, our economy is growing and creating jobs, but it's still too hard for too many folks to find work, especially our younger veterans, our veterans from Iraq and Afghanistan.
+
+With new tools like our online Veterans Jobs Bank, we're connecting veterans directly to jobs.
+
+It's one of the reasons I've proposed to Congress a Veterans Jobs Corps to put our veterans back to work protecting and rebuilding America.
+
+And today, I am again calling on Congress: Pass this Veterans Jobs Corps and extend the tax credits for businesses that hire veterans so we can give these American heroes the jobs and opportunities that they deserve.
+
+
+```
+
+A qualitative analysis of the above summary sentences shows it clearly captures
+the salient points of the speech.
+
 
 ### Sentence Extraction for Summarization
 
@@ -182,5 +213,23 @@ To find the most relevant sentence, we compute the cosine similarity
 between TF-IDF vector of the sentence and that of the topic vector
 associated with the sentence/document. We then rank order the sentences
 according to their cosine similarity -- and return the top sentences.
+
+
+## Installation
+
+sumspeech is built using [scikit-learn](http://scikit-learn.org/stable/),
+[Goose](https://github.com/grangier/python-goose) and
+[TextBlob](https://textblob.readthedocs.io/en/dev/). Install the dependencies as follows.
+
+```
+pip install -r requirements.txt
+```
+
+## Usage with Python API
+
+sumspeech can be used as a library in your project or as a stand-alone API.
+
+
+
 
 

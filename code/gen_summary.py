@@ -26,7 +26,7 @@ if __name__ == '__main__':
             'test': '../data/tests/test.links'
             }
 
-    __n_topics_to_extract = 10
+    __n_topics_to_extract = 4
     __n_topics_to_associate_per_speech = 1
 
     __n_topics_to_display = 5
@@ -37,7 +37,7 @@ if __name__ == '__main__':
     sc = SpeechCorpus(url_path=curated_urls['test'])
 
     ''' verify corpus after creation '''
-    print(sc)
+    sc.get_speeches()
 
     ''' initialize the corpus for next steps '''
     sc.initialize_corpus(n_corpus_topics=__n_topics_to_extract,

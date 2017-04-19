@@ -1,0 +1,7 @@
+pyteaser==2.0
+nltk==3.2.1
+numpy==1.12.1
+textblob==0.12.0
+Unidecode==0.04.20
+goose==1.0.0
+scikit_learn==0.18.1

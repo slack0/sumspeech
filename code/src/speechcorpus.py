@@ -269,8 +269,10 @@ class SpeechCorpus(object):
         -- create a speech object with the info and append corpus
         '''
         for sp_index in xrange(len(self.titles)):
-            ''' create _speech_id by md5 hashing the article content '''
-            _speech_id = hashlib.md5(self.text_content[sp_index]).hexdigest()
+            ''' create _speech_id by md5 hashing the article content
+            all characters of hexdigest are not required for creating unique ID
+            truncate to 12 characters '''
+            _speech_id = hashlib.md5(self.text_content[sp_index]).hexdigest()[:12]
 
             sp = Speech(_speech_id,
                         self.titles[sp_index],
@@ -450,6 +452,14 @@ class SpeechCorpus(object):
             self.text_content.append(unidecode.unidecode_expect_nonascii(_article.cleaned_text))
 
         U.close()
+
+    def get_speeches(self):
+        """
+        Returns:
+            (list) The list of speeches in the corpus
+
+        """
+        return self.corpus
 
     def corpus_tf_info(self):
         pp.pprint('Corpus TF vector info: {}'.format(self.corpus_tf_vec.shape))
