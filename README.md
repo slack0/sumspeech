@@ -170,25 +170,39 @@ Using the above topic vector, the following sentences are extracted from the spe
 
 
 ```
-After 10 years of war, and given the progress we've made, I felt it was important that the American people -- and our men and women in uniform -- know our plan to end this war responsibly.
 
-Because we're leading around the world, people have a new attitude toward America.
+After 10 years of war, and given the progress we've made, I felt it was
+important that the American people -- and our men and women in uniform -- know
+our plan to end this war responsibly.
 
-If the choice is between tax cuts that the wealthiest Americans don't need and funding our troops that they definitely need to keep our country strong, I will stand with our troops every single time.
+Because we're leading around the world, people have a new attitude toward
+America.
 
-For the first time ever, we've made military families and veterans a top priority not just at DOD, not just at the VA, but across the government.
+If the choice is between tax cuts that the wealthiest Americans don't need and
+funding our troops that they definitely need to keep our country strong, I will
+stand with our troops every single time.
+
+For the first time ever, we've made military families and veterans a top
+priority not just at DOD, not just at the VA, but across the government.
 
 You know how this can work better, so let's get it done, together.
 
-Four years ago, I said that I'd do everything I could to help our veterans realize the American Dream, to enlist you in building a stronger America.
+Four years ago, I said that I'd do everything I could to help our veterans
+realize the American Dream, to enlist you in building a stronger America.
 
-So today, our economy is growing and creating jobs, but it's still too hard for too many folks to find work, especially our younger veterans, our veterans from Iraq and Afghanistan.
+So today, our economy is growing and creating jobs, but it's still too hard for
+too many folks to find work, especially our younger veterans, our veterans from
+Iraq and Afghanistan.
 
-With new tools like our online Veterans Jobs Bank, we're connecting veterans directly to jobs.
+With new tools like our online Veterans Jobs Bank, we're connecting veterans
+directly to jobs.
 
-It's one of the reasons I've proposed to Congress a Veterans Jobs Corps to put our veterans back to work protecting and rebuilding America.
+It's one of the reasons I've proposed to Congress a Veterans Jobs Corps to put
+our veterans back to work protecting and rebuilding America.
 
-And today, I am again calling on Congress: Pass this Veterans Jobs Corps and extend the tax credits for businesses that hire veterans so we can give these American heroes the jobs and opportunities that they deserve.
+And today, I am again calling on Congress: Pass this Veterans Jobs Corps and
+extend the tax credits for businesses that hire veterans so we can give these
+American heroes the jobs and opportunities that they deserve.
 
 
 ```
@@ -230,6 +244,109 @@ pip install -r requirements.txt
 sumspeech can be used as a library in your project or as a stand-alone API.
 
 
+```
 
+# -*- coding: utf-8 -*-
+
+from __future__ import absolute_import
+from __future__ import division, print_function, unicode_literals
+
+from sumspeech.speechcorpus import *
+
+from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.feature_extraction.text import HashingVectorizer
+
+if __name__ == '__main__':
+
+    raw_corpus_html = {
+            'obama': '../data/speech_corpus/obama_raw_html',
+            'romney': '../data/speech_corpus/romney_raw_html',
+            'test': '../data/speech_corpus/simple_html'
+            }
+
+    raw_corpus_text = {
+            'obama': '../data/Obama',
+            'romney': '../data/Romney',
+            'test': '../data/tests/simple'
+            }
+
+    curated_urls = {
+            'obama': '../data/obama.links',
+            'romney': '../data/romney.links',
+            'trump': '../data/trump.clean.links',
+            'test': '../data/tests/test.links'
+            }
+
+    __n_topics_to_extract = 4
+    __n_topics_to_associate_per_speech = 1
+
+    __n_topics_to_display = 5
+    __n_speeches_to_print = 5
+    __n_sentences_per_speech = 10
+
+    ''' Build speech corpus '''
+    sc = SpeechCorpus(url_path=curated_urls['test'])
+
+    ''' verify corpus after creation '''
+    sc.get_speeches()
+
+    ''' Initialize the corpus for next steps '''
+    sc.initialize_corpus(n_corpus_topics=__n_topics_to_extract,
+                         n_doc_topics=__n_topics_to_associate_per_speech)
+
+    ''' 
+    vectorize the corpus 
+    we can select the type of vectorizer to use with the option 'vectorizer'
+
+    A selection of text vectorizers available in sklearn.feature_extraction.text
+    The default vectorizer is TfidfVectorizer
+    '''
+    sc.vectorize_corpus()
+
+    ''' 
+    Decompose the document-term matrix into document-topic and
+    topic-term matrices with decomposition
+
+    Models supported for decomposition are:
+        - sklearn.decomposition.NMF (default)
+        - sklearn.decomposition.LatentDirichletAllocation
+
+    If model selected is NMF, there is option to select the solver used
+    for Non-negative Matrix Factorization. Use the nmf_init argument to provide
+    a string as argument to sklearn.decomposition.NMF .
+
+    nmf_init defaults to 'random'
+    '''
+    sc.fit(model=NMF)
+
+    ''' 
+    At this point, it is possible to pull different attributes of
+    corpus and speeches - and use it debug/evaluate 
+    '''
+    sc.corpus_tf_info()
+
+    ''' 
+    Extract summaries from corpus.
+    this generates sentence rankings for every speech
+
+    During this step, the vocabulary of entire corpus is used
+    to normalize the vocabulary of the speech.
+
+    There is an option to explore additional vectorizers when looking
+    for similarity to topic vectors.
+
+    The default vectorizer is TfidfVectorizer
+    '''
+    sc.extract_summaries()
+
+    ''' Iterate on corpus speeches and print summaries '''
+    for i in sc.corpus:
+        print ''
+        pp.pprint('Speech: {}'.format(i.get_title()))
+        pp.pprint(i.get_summary(10))
+
+
+
+```
 
 
