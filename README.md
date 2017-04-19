@@ -243,6 +243,11 @@ pip install -r requirements.txt
 
 sumspeech can be used as a library in your project or as a stand-alone API.
 
+Once the corpus is intialized with all the documents, the API allows interactive exploration of different decomposition models - [Non-Negative Matrix Factorization](http://scikit-learn.org/stable/modules/generated/sklearn.decomposition.NMF.html#sklearn.decomposition.NMF) and [Latent Dirichlet Allocation](http://scikit-learn.org/stable/modules/generated/sklearn.decomposition.LatentDirichletAllocation.html).
+
+Users can also select different vectorizers to explore different document to top mapping outcomes, and its affect on sentence ranking for summary extraction. In the current implementation, the allowed vectorizers are: [TfidfVectorizer](http://scikit-learn.org/stable/modules/generated/sklearn.feature_extraction.text.TfidfVectorizer.html), [CountVectorizer](http://scikit-learn.org/stable/modules/generated/sklearn.feature_extraction.text.CountVectorizer.html) and [HashingVectorizer](http://scikit-learn.org/stable/modules/generated/sklearn.feature_extraction.text.HashingVectorizer.html).
+
+To explore different models and vectorizers, just re-run SpeechCorpus.vectorize\_corpus(), SpeechCorpus.fit() with desired models/options followed by SpeechCorpus.extract\_summary(). This sequence of operations would re-generate topic-to-sentence affinity and sentence rankings for summary extraction.
 
 ```
 
