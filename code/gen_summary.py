@@ -1,6 +1,9 @@
+# -*- coding: utf-8 -*-
 
-from src.speechcorpus import *
-from src.utils import *
+from __future__ import absolute_import
+from __future__ import division, print_function, unicode_literals
+
+from sumspeech.speechcorpus import *
 
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.feature_extraction.text import HashingVectorizer
