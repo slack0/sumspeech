@@ -18,8 +18,6 @@ import unidecode
 import hashlib
 
 from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.feature_extraction.text import CountVectorizer
-from sklearn.feature_extraction.text import HashingVectorizer
 
 from sklearn.decomposition import NMF
 from sklearn.decomposition import LatentDirichletAllocation
@@ -192,10 +190,10 @@ class Speech(object):
         if not most_important:
             ''' get the least-important sentences in reverse! '''
             indices = [i for i in self.sentence_ranking[-n_summary_sentences::][::-1]]
-            summ_sentences = [self.raw_sentences[i] for i in indices]
+            summ_sentences = [self.raw_sentences[i].raw for i in indices]
         else:
             indices = [i for i in self.sentence_ranking[:n_summary_sentences]]
-            summ_sentences = [self.raw_sentences[i] for i in indices]
+            summ_sentences = [self.raw_sentences[i].raw for i in indices]
 
         return dict(zip(indices, summ_sentences))
 
@@ -206,16 +204,15 @@ class SpeechCorpus(object):
     def __init__(self,
                  html_path=None,
                  txt_path=None,
-                 url_path=None,
-                 n_corpus_topics=10,
-                 n_doc_topics=1):
+                 url_path=None):
 
         self.html_path = html_path
         self.txt_path = txt_path
         self.url_path = url_path
 
-        self._n_corpus_topics = n_corpus_topics
-        self._n_doc_topics = n_doc_topics
+        ''' Parameters for corpus vectorization and topic generation '''
+        self._n_corpus_topics = None
+        self._n_doc_topics = None
 
         ''' speech article related attributes '''
         self.titles = []
@@ -280,6 +277,15 @@ class SpeechCorpus(object):
                         self.text_content[sp_index])
             self.corpus.append(sp)
 
+    def initialize_corpus(self, n_corpus_topics=10, n_doc_topics=1):
+        """
+        Set parameters for corpus vectorization and topic generation
+        after the corpus is initialized
+
+        """
+        self._n_corpus_topics = n_corpus_topics
+        self._n_doc_topics = n_doc_topics
+
     def vectorize_corpus(self, vectorizer=TfidfVectorizer):
         """
         Vectorize the corpus for summary extraction
@@ -287,6 +293,14 @@ class SpeechCorpus(object):
             vectorizer (function): name of the vectorizer
 
         """
+
+        ''' if user fails to calls initialize_corpus; we do not have
+        information to proceed further.
+
+        if _n_corpus_topics and _n_doc_topics are not set, call
+        initialize_corpus() here '''
+        if self._n_corpus_topics is None and self._n_doc_topics is None:
+            self.initialize_corpus()
 
         self._corpus_vectorizer = vectorizer(tokenizer=tokenize,
                                              stop_words='english')
@@ -382,9 +396,9 @@ class SpeechCorpus(object):
             _sp.topics = self.top_topics_of_sp[_index]
 
             for _topic_index in _sp.topics:
-                pp.pprint("Top Topic: " + str(_topic_index))
-                pp.pprint("Top Topic Words: "  + str(self.topics[_topic_index][:10]))
-                pp.pprint(" ")
+                # pp.pprint("Top Topic: " + str(_topic_index))
+                # pp.pprint("Top Topic Words: "  + str(self.topics[_topic_index][:10]))
+                # pp.pprint(" ")
 
                 topic_vector = self.corpus_model.components_[_topic_index]
                 for s_index, s_tf in enumerate(speech_tfs):

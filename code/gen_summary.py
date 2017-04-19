@@ -2,6 +2,9 @@
 from src.speechcorpus import *
 from src.utils import *
 
+from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.feature_extraction.text import HashingVectorizer
+
 if __name__ == '__main__':
 
     raw_corpus_html = {
@@ -28,17 +31,17 @@ if __name__ == '__main__':
 
     __n_topics_to_display = 5
     __n_speeches_to_print = 5
-    __n_sentences_per_speech = 5
-
+    __n_sentences_per_speech = 10
 
     ''' build speech corpus '''
-    sc = SpeechCorpus(url_path=curated_urls['obama'],
-                    n_corpus_topics=__n_topics_to_extract,
-                    n_doc_topics=__n_topics_to_associate_per_speech)
+    sc = SpeechCorpus(url_path=curated_urls['test'])
 
     ''' verify corpus after creation '''
     print(sc)
 
+    ''' initialize the corpus for next steps '''
+    sc.initialize_corpus(n_corpus_topics=__n_topics_to_extract,
+                         n_doc_topics=__n_topics_to_associate_per_speech)
 
     ''' vectorize the corpus -
     we can select the type of vectorizer to use with the option 'vectorizer'
@@ -56,8 +59,14 @@ if __name__ == '__main__':
         - sklearn.decomposition.NMF (default)
         - sklearn.decomposition.LatentDirichletAllocation
 
+    If model selected is NMF, there is option to select the solver used
+    for Non-negative Matrix Factorization. Use the nmf_init argument to provide
+    a string as argument to sklearn.decomposition.NMF .
+
+    nmf_init defaults to 'random'
+
     '''
-    sc.fit(model=NMF, nmf_init='nndsvd')
+    sc.fit(model=NMF)
 
     ''' at this point, it is possible to pull different attributes of
     corpus and speeches - and use it debug/evaluate '''
@@ -76,5 +85,9 @@ if __name__ == '__main__':
     '''
     sc.extract_summaries()
 
-
     ''' iterate on corpus speeches and print summaries '''
+    for i in sc.corpus:
+        print ''
+        pp.pprint('Speech: {}'.format(i.get_title()))
+        pp.pprint(i.get_summary(10))
+

@@ -18,7 +18,7 @@ def grab_link(in_url):
 
     """
     try:
-        pp.pprint('Getting article: ' + in_url)
+        pp.pprint('Downloading article: ' + in_url)
         article = Goose().extract(url=in_url)
         return article
     except ValueError:

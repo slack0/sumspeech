@@ -1,44 +1,57 @@
 
 # sumspeech
 
-NLP-based summarization tool for politcal speeches and interviews.
+Summarization tool for Political Speeches and Interviews.
 
 ## Introduction
 
-Speech summarization is a necessity in many domains. It is needed in
-cases where the audience needs to get a gist of a speech or an article
-in a way that preserves the intent and the meaning of the speech. This
-problem belongs to a class of problems under [Automatic
-summarization](https://en.wikipedia.org/wiki/Automatic_summarization).
+Speech summarization is a necessity in many domains. It is needed in cases
+where the audience needs to get a gist of a speech or an article in a way that
+preserves the intent and the meaning of the speech. This belongs to a class of
+problems under 
+[Automatic summarization](https://en.wikipedia.org/wiki/Automatic_summarization).
 
 
-Summary generation is difficult. It is context dependent.  The objective
-and the metrics of summarization process themselves are difficult to
-define in some situations. Extracting information that is representative
-of an entire discussion/topic/speech is nuanced, as the speaker may
-convey meaning implicitly while referring to a past or a future
-discussion.
+Summary generation is difficult. It is context dependent.  The objective and
+the metrics of summarization process themselves are difficult to define in some
+situations. Generating or Extracting information that is representative of an
+entire article, discussion, topic or speech is nuanced, as the author or
+speaker may convey meaning implicitly by referring to other parts of the speech
+or article.  This problem is worsened if there are reference to a past or
+future discussion.  The challenges posed by text summarization has attracted a
+lot of interest in academic and industry research communities. 
 
-The main idea of summarization is to create a representative summary or
-an abstract which contains the information of the entire set. This is
-achieved by finding the most informative sentences in the
-document/speech.
 
+[Abstractive summarization](https://www.google.com/search?q=abstractive+summarization) 
+is still an active area of work, and so is 
+[Extractive summarization](https://www.google.com/search?q=extractive+summarization).
+
+State of the art abstractive summarization techniques focus on attention
+mechanisms using RNNs to train sentence generators. Where as extractive
+summarizers focus on word/sentence selection mechanisms using a variety of
+techniques. Extractive summarizers find the most informative sentences in a given article.
+[TextRank](https://web.eecs.umich.edu/~mihalcea/papers/mihalcea.emnlp04.pdf) is
+a well-known technique for extractive summarization.
+
+A good implementation of well-known/SoTA techniques for abstractive
+summarization in the tool [sumy](https://github.com/miso-belica/sumy).
 
 ## Summary Generation from Political Speeches
 
-### Motivation
-
-The primary motivation for this work is to develop insights and build a
-profile of a speaker based on their speech. For a speaker/leader in
-public domain, who is well studied and discussed in the media, it is
-relatively easy to develop insights. But developing insights into
-someone who is not in the limelight is difficult. Speeches, interviews,
-and conversations in general reveal what people believe in and where
-they stand on issues. Speech patterns such as vocabulary usage,
-sentiments expressed and topics discussed are some of the main
-attributes that pop out directly from speeches. Using these primary
+The primary motivation for this work is to develop insights and build a profile
+of a speaker based on their speech. For a speaker/leader in public domain, who
+is well studied and discussed in the media, it is relatively easy to develop
+insights. But developing insights into someone who is not in the limelight is
+difficult. Speeches, interviews, and conversations in general reveal what
+people believe in and where they stand on issues. Speech patterns such as
+vocabulary usage, sentiments expressed and topics discussed are some of the
+main attributes that pop out directly from speeches. Using these primary
 attributes, we explore summary generation.
+
+As good as some of the extractive summarizers are, they fall short of capturing
+the context information available in articles or speeches from a speaker. This
+work aims to utilize this contextual information (available in a corpora of
+articles/speeches) to extract summaries.
 
 ### Methodology
 
@@ -77,7 +90,7 @@ distribution of topics related to each speech within the corpus. The
 figure below shows the distribution of topics related to six speeches
 from Obama. The specificity of a speech is clearly evident from this
 visual. Obviously, some speeches are concerned with specific topics,
-while others discuss a combination of topics. It also revals that the
+while others discuss a combination of topics. It also reveals that the
 vocabulary used by the speaker (Obama in this case) was specific enough
 to be captured into distinct topics.
 
@@ -149,7 +162,7 @@ http://www.americanrhetoric.com/speeches/barackobama/barackobama113vfw.htm
 
 The topic clearly is associated with a discussion about wars, veterans
 and their contributions to America. The topic words associated with this
-speech -- that are extracted from NMF are:
+speech -- that are extracted are:
 
 'iraq', 'veterans', 'war', 'troops', 'military', 'afghanistan', 'security', 'afghan'
 
