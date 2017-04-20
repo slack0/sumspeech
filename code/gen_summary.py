@@ -90,7 +90,7 @@ if __name__ == '__main__':
 
     ''' iterate on corpus speeches and print summaries '''
     for i in sc.corpus:
-        print ''
+        pp.pprint('')
         pp.pprint('Speech: {}'.format(i.get_title()))
         pp.pprint(i.get_summary(10))
 
