@@ -21,6 +21,7 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 
 from sklearn.decomposition import NMF
 from sklearn.decomposition import LatentDirichletAllocation
+from sklearn.decomposition import TruncatedSVD
 
 from sklearn.metrics.pairwise import cosine_similarity
 
@@ -318,7 +319,8 @@ class SpeechCorpus(object):
 
         """
         if not ((model.__module__ == 'sklearn.decomposition.nmf') or
-                (model.__module__ == 'sklearn.decomposition.online_lda')):
+                (model.__module__ == 'sklearn.decomposition.online_lda') or
+                (model.__module__ == 'sklearn.decomposition.truncated_svd')):
             raise NotImplementedError
 
         if model.__module__ == 'sklearn.decomposition.nmf':
@@ -328,8 +330,10 @@ class SpeechCorpus(object):
 
         if model.__module__ == 'sklearn.decomposition.online_lda':
             self.corpus_model = model(n_topics=self._n_corpus_topics,
-                                      n_jobs=-1,
-                                      verbose=10)
+                                      n_jobs=-1)
+
+        if model.__module__ == 'sklearn.decomposition.truncated_svd':
+            self.corpus_model = model(n_components=self._n_corpus_topics)
 
         '''
         the ordering of speeches is incorporated into
