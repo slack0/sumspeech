@@ -263,22 +263,23 @@ from sklearn.feature_extraction.text import HashingVectorizer
 
 if __name__ == '__main__':
 
-    ''' dictionaries with paths to different formats of corpora '''
-    ''' path to raw html files of documents '''
+    ### dictionaries with paths to different formats of corpora 
+
+    ### path to raw html files of documents 
     raw_corpus_html = {
             'obama': '../data/speech_corpus/obama_raw_html',
             'romney': '../data/speech_corpus/romney_raw_html',
             'test': '../data/speech_corpus/simple_html'
             }
 
-    ''' path to raw text files '''
+    ### path to raw text files 
     raw_corpus_text = {
             'obama': '../data/Obama',
             'romney': '../data/Romney',
             'test': '../data/tests/simple'
             }
 
-    ''' path to files with URLs '''
+    ### path to files with URLs 
     curated_urls = {
             'obama': '../data/obama.links',
             'romney': '../data/romney.links',
@@ -294,11 +295,11 @@ if __name__ == '__main__':
     __n_sentences_per_speech = 10
 
     ''' 
-    Steps for sentence extraction:
-    - Build speech corpus 
-    - Vectorize the corpus
-    - Fit a model
-    - Extract and print summaries
+      Steps for sentence extraction:
+        - Build speech corpus 
+        - Vectorize the corpus
+        - Fit a model
+        - Extract and print summaries
     '''
 
     sc = SpeechCorpus(url_path=curated_urls['test'])
@@ -309,21 +310,19 @@ if __name__ == '__main__':
 
     sc.vectorize_corpus()
 
-    ''' 
-    default model = NMF 
-    default nmf_init = 'random'
-    '''
+    ### default model = NMF 
+    ### default nmf_init = 'random'
     sc.fit(model=NMF, nmf_init='nndsvd')
 
-    ''' debug/get information about corpus and topics '''
+    ### debug/get information about corpus and topics 
     sc.corpus_tf_info()               ### print corpus TF-IDF vector info
     sc.get_corpus_vocabulary()        ### print the entire corpus vocabulary
     sc.get_top_topics()               ### print top topics associated withevery speech/document in the corpus
 
-    ''' extract summaries (generate sentence rankings) '''
+    ### extract summaries (generate sentence rankings) 
     sc.extract_summaries()
 
-    ''' Iterate on corpus speeches and print summaries '''
+    ### Iterate on corpus speeches and print summaries 
     for i in sc.get_speeches():
         print ''
         print('Speech: {}'.format(i.get_title())) ### print speech title
