@@ -249,7 +249,7 @@ Users can also select different vectorizers to explore different document to top
 
 To explore different models and vectorizers, just re-run SpeechCorpus.vectorize\_corpus(), SpeechCorpus.fit() with desired models/options followed by SpeechCorpus.extract\_summary(). This sequence of operations would re-generate topic-to-sentence affinity and sentence rankings for summary extraction.
 
-```
+```python
 
 # -*- coding: utf-8 -*-
 
