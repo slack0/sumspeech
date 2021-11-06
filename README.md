@@ -94,7 +94,7 @@ vocabulary used by the speaker (Obama in this case) was specific enough
 to be captured into distinct topics.
 
 ![alt
-text](https://raw.githubusercontent.com/slack0/talking-points/master/data/topic_distribution.png
+text](https://raw.githubusercontent.com/slack0/sumspeech/master/topic_distribution.png
 "Distribution of topics for speeches")
 
 ### Topic Mapping to Speeches
