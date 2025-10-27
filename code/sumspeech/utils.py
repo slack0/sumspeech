@@ -1,6 +1,6 @@
-''' Talking Points '''
+"""Talking Points"""
 
-from goose import Goose
+from goose3 import Goose
 
 import operator
 import nltk
@@ -10,6 +10,7 @@ import pprint
 
 pp = pprint.PrettyPrinter(indent=4)
 
+
 def grab_link(in_url):
     """
     Extract article information from Goose
@@ -18,11 +19,11 @@ def grab_link(in_url):
 
     """
     try:
-        pp.pprint('Downloading article: ' + in_url)
+        pp.pprint("Downloading article: " + in_url)
         article = Goose().extract(url=in_url)
         return article
     except ValueError:
-        print 'Goose failed to extract article from url'
+        print("Goose failed to extract article from url")
         return None
     return None
 
@@ -55,16 +56,17 @@ def get_corpus_topics(tfidf, model, n_topics):
     for k in tfidf.vocabulary_.keys():
         id2word[tfidf.vocabulary_[k]] = k
 
-    for topic_index in xrange(n_topics):
-        topic_importance = dict(zip(id2word.values(),
-                                    list(model.components_[topic_index])))
-        sorted_topic_imp = sorted(topic_importance.items(),
-                                  key=operator.itemgetter(1),
-                                  reverse=True)
+    for topic_index in range(n_topics):
+        topic_importance = dict(
+            zip(id2word.values(), list(model.components_[topic_index]))
+        )
+        sorted_topic_imp = sorted(
+            topic_importance.items(), key=operator.itemgetter(1), reverse=True
+        )
         topics.append([i[0] for i in sorted_topic_imp])
 
-    ''' list of all words sorted in descending order of
-    importance for all topics '''
+    """ list of all words sorted in descending order of
+    importance for all topics """
     return topics
 
 
@@ -78,8 +80,7 @@ def print_top_topics(topics, n_topics=10):
     topic_index = 0
     for i in topics[:n_topics]:
         topic_words = i[0:9]
-        print 'Topic: {} -- {}\n'.format(topic_index,
-                                         [str(j) for j in topic_words])
+        print("Topic: {} -- {}\n".format(topic_index, [str(j) for j in topic_words]))
         topic_index += 1
 
 
@@ -95,4 +96,3 @@ def get_top_topics(W, n_topics):
         top_topics.append(np.argsort(row)[::-1][:n_topics])
 
     return top_topics
-
