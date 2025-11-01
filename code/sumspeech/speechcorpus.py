@@ -1,4 +1,4 @@
-''' Talking Points '''
+"""Talking Points"""
 
 import os
 import re
@@ -12,7 +12,7 @@ import numpy as np
 from collections import defaultdict
 
 from textblob import TextBlob
-from goose import Goose
+from goose3 import Goose
 import unidecode
 
 import hashlib
@@ -25,7 +25,7 @@ from sklearn.decomposition import TruncatedSVD
 
 from sklearn.metrics.pairwise import cosine_similarity
 
-from utils import *
+from .utils import *
 
 # Globals
 logging.basicConfig()
@@ -34,9 +34,9 @@ LOG.setLevel(logging.INFO)
 
 pp = pprint.PrettyPrinter(indent=4)
 
-class Speech(object):
 
-    """ Operations for Speech Text """
+class Speech(object):
+    """Operations for Speech Text"""
 
     def __init__(self, speech_id=None, title=None, content=None):
         """
@@ -51,28 +51,28 @@ class Speech(object):
         self.title = title
         self.raw_content = content
 
-        ''' speech attributes '''
+        """ speech attributes """
 
-        ''' processed_txt contains the output of cleanup,
-        with punctuation for sentence extraction '''
+        """ processed_txt contains the output of cleanup,
+        with punctuation for sentence extraction """
         self.processed_txt = self._process_content()
 
-        ''' raw sentences of the speech '''
+        """ raw sentences of the speech """
         self.raw_sentences = self._extract_raw_sentences()
 
-        ''' topic attributes '''
+        """ topic attributes """
         self.topics = []
         self.topic_words = {}
 
-        ''' sentence similarity metric with topics '''
+        """ sentence similarity metric with topics """
         self.sentence_similarity = {}
 
-        '''
+        """
         (1) sentence ranking based on similarity, in descending order
         (2) lower indices correspond to index of most-important sentences
             and vice-versa
         (3) use these rankings used to extract most/least important sentences
-        '''
+        """
         self.sentence_ranking = []
 
     def __repr__(self):
@@ -82,7 +82,7 @@ class Speech(object):
 
         """
 
-        return '{}: {}'.format(self.speech_id, self.title)
+        return "{}: {}".format(self.speech_id, self.title)
 
     def get_id(self):
         """
@@ -128,7 +128,7 @@ class Speech(object):
 
         """
 
-        return self.processed_txt.translate(None, string.punctuation)
+        return self.processed_txt.translate(str.maketrans("", "", string.punctuation))
 
     def get_raw_sentences(self, n_sentences=5):
         """
@@ -161,10 +161,10 @@ class Speech(object):
         """
 
         re.sub("[\W\d]", " ", self.raw_content.lower().strip())
-        lowers = self.raw_content.replace('\n', ' ').replace('\r', ' ')
+        lowers = self.raw_content.replace("\n", " ").replace("\r", " ")
 
         while "  " in lowers:
-            lowers = lowers.replace('  ', ' ')
+            lowers = lowers.replace("  ", " ")
         return lowers
 
     def _extract_raw_sentences(self):
@@ -189,7 +189,7 @@ class Speech(object):
         indices = []
         summ_sentences = []
         if not most_important:
-            ''' get the least-important sentences in reverse! '''
+            """get the least-important sentences in reverse!"""
             indices = [i for i in self.sentence_ranking[-n_summary_sentences::][::-1]]
             summ_sentences = [self.raw_sentences[i].raw for i in indices]
         else:
@@ -198,28 +198,25 @@ class Speech(object):
 
         return dict(zip(indices, summ_sentences))
 
+
 class SpeechCorpus(object):
+    """Speech Corpus Generation and Operations"""
 
-    """ Speech Corpus Generation and Operations """
-
-    def __init__(self,
-                 html_path=None,
-                 txt_path=None,
-                 url_path=None):
+    def __init__(self, html_path=None, txt_path=None, url_path=None):
 
         self.html_path = html_path
         self.txt_path = txt_path
         self.url_path = url_path
 
-        ''' Parameters for corpus vectorization and topic generation '''
+        """ Parameters for corpus vectorization and topic generation """
         self._n_corpus_topics = None
         self._n_doc_topics = None
 
-        ''' speech article related attributes '''
+        """ speech article related attributes """
         self.titles = []
         self.text_content = []
 
-        ''' corpus attributes '''
+        """ corpus attributes """
         self.corpus = []
         self._corpus_vectorizer = None
         self.corpus_tf_vec = None
@@ -231,7 +228,7 @@ class SpeechCorpus(object):
 
         self.top_topics_of_corpus = []
 
-        ''' create the corpus during initialization '''
+        """ create the corpus during initialization """
         self._create_corpus()
 
     def __repr__(self):
@@ -240,8 +237,8 @@ class SpeechCorpus(object):
             (None) Prints the collection of speeches contained in the corpus
 
         """
-        corpus_repr = '\n'.join(str(i) for i in self.corpus)
-        return '{}'.format(corpus_repr)
+        corpus_repr = "\n".join(str(i) for i in self.corpus)
+        return "{}".format(corpus_repr)
 
     def _create_corpus(self):
         """
@@ -252,10 +249,10 @@ class SpeechCorpus(object):
             raise NotImplementedError
 
         if self.html_path is not None:
-            self._doc2corpus(doc_type='html')
+            self._doc2corpus(doc_type="html")
 
         elif self.txt_path is not None:
-            self._doc2corpus(doc_type='txt')
+            self._doc2corpus(doc_type="txt")
 
         elif self.url_path is not None:
             self._web2corpus()
@@ -263,21 +260,19 @@ class SpeechCorpus(object):
         else:
             raise NotImplementedError
 
-        '''
+        """
         create a new speech instance for every valid speech
         -- extract article title
         -- create a unique ID from the raw text content of the speech
         -- create a speech object with the info and append corpus
-        '''
-        for sp_index in xrange(len(self.titles)):
-            ''' create _speech_id by md5 hashing the article content
+        """
+        for sp_index in range(len(self.titles)):
+            """create _speech_id by md5 hashing the article content
             all characters of hexdigest are not required for creating unique ID
-            truncate to 12 characters '''
+            truncate to 12 characters"""
             _speech_id = hashlib.md5(self.text_content[sp_index]).hexdigest()[:12]
 
-            sp = Speech(_speech_id,
-                        self.titles[sp_index],
-                        self.text_content[sp_index])
+            sp = Speech(_speech_id, self.titles[sp_index], self.text_content[sp_index])
             self.corpus.append(sp)
 
     def initialize_corpus(self, n_corpus_topics=10, n_doc_topics=1):
@@ -297,50 +292,50 @@ class SpeechCorpus(object):
 
         """
 
-        ''' if user fails to calls initialize_corpus; we do not have
+        """ if user fails to calls initialize_corpus; we do not have
         information to proceed further.
 
         if _n_corpus_topics and _n_doc_topics are not set, call
-        initialize_corpus() here '''
+        initialize_corpus() here """
         if self._n_corpus_topics is None and self._n_doc_topics is None:
             self.initialize_corpus()
 
-        self._corpus_vectorizer = vectorizer(tokenizer=tokenize,
-                                             stop_words='english')
+        self._corpus_vectorizer = vectorizer(tokenizer=tokenize, stop_words="english")
         _cleaned_sp = [_sp.get_unpunctuated_content() for _sp in self.corpus]
         self.corpus_tf_vec = self._corpus_vectorizer.fit_transform(_cleaned_sp)
-        self.corpus_vocab = self._corpus_vectorizer.get_feature_names()
+        self.corpus_vocab = self._corpus_vectorizer.get_feature_names_out()
 
-    def fit(self, model=NMF, nmf_init='random'):
+    def fit(self, model=NMF, nmf_init="random"):
         """
         Fit a model on vectorized speech corpus
         Kwargs:
             model (function): name of the model to perform decomposition
 
         """
-        if not ((model.__module__ == 'sklearn.decomposition.nmf') or
-                (model.__module__ == 'sklearn.decomposition.online_lda') or
-                (model.__module__ == 'sklearn.decomposition.truncated_svd')):
+        if not (
+            (model.__module__ == "sklearn.decomposition.nmf")
+            or (model.__module__ == "sklearn.decomposition.online_lda")
+            or (model.__module__ == "sklearn.decomposition.truncated_svd")
+        ):
             raise NotImplementedError
 
-        if model.__module__ == 'sklearn.decomposition.nmf':
-            self.corpus_model = model(n_components=self._n_corpus_topics,
-                                      init=nmf_init,
-                                      random_state=1980)
+        if model.__module__ == "sklearn.decomposition.nmf":
+            self.corpus_model = model(
+                n_components=self._n_corpus_topics, init=nmf_init, random_state=1980
+            )
 
-        if model.__module__ == 'sklearn.decomposition.online_lda':
-            self.corpus_model = model(n_topics=self._n_corpus_topics,
-                                      n_jobs=-1)
+        if model.__module__ == "sklearn.decomposition.online_lda":
+            self.corpus_model = model(n_topics=self._n_corpus_topics, n_jobs=-1)
 
-        if model.__module__ == 'sklearn.decomposition.truncated_svd':
+        if model.__module__ == "sklearn.decomposition.truncated_svd":
             self.corpus_model = model(n_components=self._n_corpus_topics)
 
-        '''
+        """
         the ordering of speeches is incorporated into
         corpus_tf_vec and corpusW
 
         this ordering is utilized during generating summaries
-        '''
+        """
         self.corpusW = self.corpus_model.fit_transform(self.corpus_tf_vec)
         self._generate_corpus_topics()
 
@@ -355,12 +350,16 @@ class SpeechCorpus(object):
         for k in self._corpus_vectorizer.vocabulary_.keys():
             self._id2word[self._corpus_vectorizer.vocabulary_[k]] = k
 
-        for topic_index in xrange(self._n_corpus_topics):
-            topic_importance = dict(zip(self._id2word.values(),
-                                        list(self.corpus_model.components_[topic_index])))
-            sorted_topic_imp = sorted(topic_importance.items(),
-                                      key=operator.itemgetter(1),
-                                      reverse=True)
+        for topic_index in range(self._n_corpus_topics):
+            topic_importance = dict(
+                zip(
+                    self._id2word.values(),
+                    list(self.corpus_model.components_[topic_index]),
+                )
+            )
+            sorted_topic_imp = sorted(
+                topic_importance.items(), key=operator.itemgetter(1), reverse=True
+            )
             self.topics.append([i[0] for i in sorted_topic_imp])
 
     def extract_summaries(self, vectorizer=TfidfVectorizer):
@@ -371,34 +370,38 @@ class SpeechCorpus(object):
             latent feature extraction from the vectorized corpus
         """
 
-        sentence_tfidf = vectorizer(tokenizer=tokenize,
-                                    stop_words='english',
-                                    vocabulary=self.corpus_vocab)
+        sentence_tfidf = vectorizer(
+            tokenizer=tokenize, stop_words="english", vocabulary=self.corpus_vocab
+        )
 
         self.top_topics_of_sp = self.get_top_topics()
 
-        '''
+        """
         (1) iterate over raw speech text and speech_sentences
         (2) get sentence term-frequency vectors based on the
             vocabulary of the corpus
         (3) check the cosine similarity of every sentences' TF vector
             with that of the top topics for that document
-        '''
+        """
         for _index, _sp in enumerate(self.corpus):
 
             speech_sentences = defaultdict(int)
             for _sentence_count, _each_sentence in enumerate(_sp.raw_sentences):
-                speech_sentences[_sentence_count] = str(_each_sentence).translate(None, string.punctuation)
+                speech_sentences[_sentence_count] = str(_each_sentence).translate(
+                    str.maketrans("", "", string.punctuation)
+                )
 
-            speech_tfs = sentence_tfidf.fit_transform(speech_sentences.values()).todense()
+            speech_tfs = sentence_tfidf.fit_transform(
+                speech_sentences.values()
+            ).todense()
 
-            '''
+            """
             (1) iterate over each speech's most relevant topics
             (2) get cosine similarity between speech_tfs and topic_vectors
-            '''
+            """
 
-            ''' assign topics to speech; at this point,
-            we should be able to query/retrieve topics from speech objects '''
+            """ assign topics to speech; at this point,
+            we should be able to query/retrieve topics from speech objects """
             _sp.topics = self.top_topics_of_sp[_index]
 
             for _topic_index in _sp.topics:
@@ -408,39 +411,50 @@ class SpeechCorpus(object):
 
                 topic_vector = self.corpus_model.components_[_topic_index]
                 for s_index, s_tf in enumerate(speech_tfs):
-                    ''' calculating the cosine simiarlity '''
-                    _sp.sentence_similarity[s_index] = cosine_similarity(s_tf, topic_vector.reshape((1, -1)))[0][0]
+                    """calculating the cosine simiarlity"""
+                    _sp.sentence_similarity[s_index] = cosine_similarity(
+                        s_tf, topic_vector.reshape((1, -1))
+                    )[0][0]
 
-                ''' sort sentence similarity and rank them in descending order '''
-                _sp.sentence_ranking = [i[0] for i in sorted(_sp.sentence_similarity.items(),
-                                                             key=operator.itemgetter(1),
-                                                             reverse=True)]
+                """ sort sentence similarity and rank them in descending order """
+                _sp.sentence_ranking = [
+                    i[0]
+                    for i in sorted(
+                        _sp.sentence_similarity.items(),
+                        key=operator.itemgetter(1),
+                        reverse=True,
+                    )
+                ]
 
     def _doc2corpus(self, doc_type):
 
         for _subdir, _dirs, _files in os.walk(self.html_path):
             for _each_file in _files:
                 _file_path = _subdir + os.path.sep + _each_file
-                if (doc_type is 'html'):
-                    _htmlfile = open(_file_path, 'r')
+                if doc_type == "html":
+                    _htmlfile = open(_file_path, "r")
                     _article = Goose().extract(raw_html=_htmlfile.read())
-                    if not (_article and
-                            _article.cleaned_text and
-                            _article.title):
+                    if not (_article and _article.cleaned_text and _article.title):
                         continue
 
-                    self.titles.append(unidecode.unidecode_expect_nonascii(_article.title))
-                    self.text_content.append(unidecode.unidecode_expect_nonascii(_article.cleaned_text))
+                    self.titles.append(
+                        unidecode.unidecode_expect_nonascii(_article.title)
+                    )
+                    self.text_content.append(
+                        unidecode.unidecode_expect_nonascii(_article.cleaned_text)
+                    )
                     _htmlfile.close()
 
-                if (doc_type is 'txt'):
-                    _fhandle = open(_file_path, 'r')
+                if doc_type == "txt":
+                    _fhandle = open(_file_path, "r")
 
                     """ currently we do not have a means to extract title
                     explicitly from processed text
                     """
                     self.titles.append(None)
-                    self.text_content.append(unidecode.unidecode_expect_nonascii(_fhandle.read()))
+                    self.text_content.append(
+                        unidecode.unidecode_expect_nonascii(_fhandle.read())
+                    )
                     _fhandle.close()
 
     def _web2corpus(self):
@@ -453,7 +467,9 @@ class SpeechCorpus(object):
                 continue
 
             self.titles.append(unidecode.unidecode_expect_nonascii(_article.title))
-            self.text_content.append(unidecode.unidecode_expect_nonascii(_article.cleaned_text))
+            self.text_content.append(
+                unidecode.unidecode_expect_nonascii(_article.cleaned_text)
+            )
 
         U.close()
 
@@ -466,9 +482,11 @@ class SpeechCorpus(object):
         return self.corpus
 
     def corpus_tf_info(self):
-        pp.pprint('Corpus TF vector info: {}'.format(self.corpus_tf_vec.shape))
-        pp.pprint('CorpusW (doc-to-topics): {}'.format(self.corpusW.shape))
-        pp.pprint('CorpusH (topics-to-vocab): {}'.format(self.corpus_model.components_.shape))
+        pp.pprint("Corpus TF vector info: {}".format(self.corpus_tf_vec.shape))
+        pp.pprint("CorpusW (doc-to-topics): {}".format(self.corpusW.shape))
+        pp.pprint(
+            "CorpusH (topics-to-vocab): {}".format(self.corpus_model.components_.shape)
+        )
 
     def get_corpus_vocabulary(self):
         """
@@ -516,7 +534,6 @@ class SpeechCorpus(object):
 
         top_topics = []
         for row in self.corpusW:
-            top_topics.append(np.argsort(row)[::-1][:self._n_doc_topics])
+            top_topics.append(np.argsort(row)[::-1][: self._n_doc_topics])
 
         return top_topics
-

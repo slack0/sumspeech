@@ -232,11 +232,11 @@ according to their cosine similarity -- and return the top sentences.
 ## Installation
 
 sumspeech is built using [scikit-learn](http://scikit-learn.org/stable/),
-[Goose](https://github.com/grangier/python-goose) and
+[Goose3](https://github.com/goose3/goose3) and
 [TextBlob](https://textblob.readthedocs.io/en/dev/). Install the dependencies as follows.
 
 ```
-pip install -r requirements.txt
+pip install -r code/requirements.txt
 ```
 
 ## Usage with Python API
@@ -324,7 +324,7 @@ if __name__ == '__main__':
 
     ### Iterate on corpus speeches and print summaries 
     for i in sc.get_speeches():
-        print ''
+        print('')
         print('Speech: {}'.format(i.get_title())) ### print speech title
         print(i.get_summary(10))                  ### print the top 10 summary sentences
 
